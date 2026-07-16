@@ -19,11 +19,6 @@ Outputs:
     - out_figs/psd_computed.png: Computed PSD plot
     - out_figs/psd_mne.png: MNE PSD plot
     - product.json: Metadata about the computed PSD
-
-Note: uses mne.time_frequency.psd_welch and Raw.plot_psd, both removed
-in newer MNE-Python versions in favor of Raw.compute_psd(). Not updated
-here (out of scope for a structure-only compliance pass) - this app
-currently only runs against older MNE releases.
 """
 
 # Copyright (c) 2026 brainlife.io
@@ -68,7 +63,8 @@ raw = mne.io.read_raw(fname)
 # == GET CONFIG VALUES ==
 fmin = config['fmin']
 fmax = config['fmax']
-average = config['average']
+# compute_psd's average kwarg expects 'mean' | 'median' | None (not a bool)
+average = 'mean' if config['average'] else None
 
 # Advanced parameters
 tmin = config['tmin'] if config['tmin'] else None
@@ -82,7 +78,7 @@ proj = config['proj']
 n_jobs = 1
 picks = None
 
-# Dimensions: psd_welch.shape: Nchannels x Nfreqs
+# Dimensions: psd.shape (from Spectrum.get_data()): Nchannels x Nfreqs
 
 # Types of channels in the data
 # e.g. ['ecg', 'eog', 'grad', 'mag', 'eeg','misc', 'stim']
@@ -105,11 +101,12 @@ if picks == None:
     if 'eeg' in ch_types:
         raw_eeg = raw.copy().pick('eeg')
         ch_eeg = raw_eeg.ch_names
-        psd_welch_eeg, freqs_eeg = mne.time_frequency.psd_welch(raw_eeg,
+        spectrum_eeg = raw_eeg.compute_psd(method='welch',
                             fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
                             n_fft=n_fft, n_overlap=n_overlap, n_per_seg=n_per_seg, window=window,
                             reject_by_annotation=reject_by_annotation, average=average,
                             picks='eeg', proj=proj, n_jobs=1, verbose=None)
+        psd_welch_eeg, freqs_eeg = spectrum_eeg.get_data(return_freqs=True)
         # Convert power to dB scale: V^2/hz -> uV^2/Hz
         psd_welch_eeg = 10*(np.log10(psd_welch_eeg*1e6**2))
 
@@ -142,11 +139,12 @@ if picks == None:
     if 'grad' in ch_types:
         raw_grad = raw.copy().pick('grad')
         ch_grad = raw_grad.ch_names
-        psd_welch_grad, freqs_grad = mne.time_frequency.psd_welch(raw_grad,
+        spectrum_grad = raw_grad.compute_psd(method='welch',
                             fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
                             n_fft=n_fft, n_overlap=n_overlap, n_per_seg=n_per_seg, window=window,
                             reject_by_annotation=reject_by_annotation, average=average,
                             picks='grad', proj=proj, n_jobs=n_jobs, verbose=None)
+        psd_welch_grad, freqs_grad = spectrum_grad.get_data(return_freqs=True)
         # Convert power to dB scale: (T/m)^2/hz -> (fT/cm)^2/Hz
         psd_welch_grad = 10*(np.log10(psd_welch_grad*1e13**2))
 
@@ -179,11 +177,12 @@ if picks == None:
     if 'mag' in ch_types:
         raw_mag = raw.copy().pick('mag')
         ch_mag = raw_mag.ch_names
-        psd_welch_mag, freqs_mag = mne.time_frequency.psd_welch(raw_mag,
+        spectrum_mag = raw_mag.compute_psd(method='welch',
                             fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
                             n_fft=n_fft, n_overlap=n_overlap, n_per_seg=n_per_seg, window=window,
                             reject_by_annotation=reject_by_annotation, average=average,
                             picks='mag', proj=proj, n_jobs=n_jobs, verbose=None)
+        psd_welch_mag, freqs_mag = spectrum_mag.get_data(return_freqs=True)
         # Convert power to dB scale: T^2/hz -> fT^2/Hz
         psd_welch_mag = 10*(np.log10(psd_welch_mag*1e15**2))
 
@@ -219,15 +218,15 @@ if picks == None:
     plt.close(fig)
 
 # FIGURE 2: PSD computed with MNE function
-fig2 = plt.figure(2)
-raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+spectrum = raw.compute_psd(method='welch', fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             proj=proj, n_fft=n_fft, n_overlap=n_overlap, window=window,
-            ax=None, color='black', xscale='linear', area_mode='std', area_alpha=0.33,
-            dB=True, estimate='auto', show=True, n_jobs=n_jobs, average=False,
-            line_alpha=None, spatial_colors=True, sphere=None, verbose=None)
+            n_jobs=n_jobs, verbose=None)
+fig2 = spectrum.plot(dB=True, xscale='linear', ci='sd', ci_alpha=0.33,
+            color='black', alpha=None, spatial_colors=True, sphere=None,
+            average=False, show=False)
 # Save fig
 mne_path = os.path.join('out_figs', 'psd_mne.png')
-plt.savefig(mne_path)
+fig2.savefig(mne_path)
 plt.close(fig2)
 
 # == CREATE PRODUCT.JSON ==
