@@ -10,11 +10,8 @@
 #
 # Author: Guiomar Niso
 
-# make output directory
-mkdir -p out_psd_grad
-mkdir -p out_psd_mag
-mkdir -p out_psd_eeg
-mkdir -p out_figs
+set -e
+set -x
 
 #python main.py
 singularity exec docker://brainlifemeeg/mne:1.12.1 python3 main.py
@@ -36,6 +33,4 @@ cat << EOF > product.json
 ]
 }
 EOF
-
-
 
