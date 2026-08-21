@@ -15,7 +15,7 @@ Inputs:
     - proj: Whether to apply SSP projectors
 
 Outputs:
-    - out_psd_eeg/psd.tsv, out_psd_grad/psd.tsv, out_psd_mag/psd.tsv: Per-channel-type PSD tables
+    - out_eeg/psd.tsv, out_grad/psd.tsv, out_mag/psd.tsv: Per-channel-type PSD tables
     - out_figs/psd_computed.png: Computed PSD plot
     - out_figs/psd_mne.png: MNE PSD plot
     - product.json: Metadata about the computed PSD
@@ -50,7 +50,7 @@ from brainlife_utils import (
 setup_matplotlib_backend()
 
 # Ensure output directories exist
-ensure_output_dirs('out_psd_eeg', 'out_psd_grad', 'out_psd_mag', 'out_figs')
+ensure_output_dirs('out_eeg', 'out_grad', 'out_mag', 'out_figs')
 
 # Load configuration
 config = load_config()
@@ -114,7 +114,7 @@ if picks == None:
         df_psd = pd.DataFrame(psd_welch_eeg, index=ch_eeg, columns=freqs_eeg)
         df_psd.index.name = 'channels'
         df_psd.columns.name = 'freqs'
-        eeg_tsv_path = os.path.join('out_psd_eeg', 'psd.tsv')
+        eeg_tsv_path = os.path.join('out_eeg', 'psd.tsv')
         df_psd.to_csv(eeg_tsv_path, sep='\t')
 
         if num_subplots == 1:
@@ -152,7 +152,7 @@ if picks == None:
         df_psd = pd.DataFrame(psd_welch_grad, index=ch_grad, columns=freqs_grad)
         df_psd.index.name = 'channels'
         df_psd.columns.name = 'freqs'
-        grad_tsv_path = os.path.join('out_psd_grad', 'psd.tsv')
+        grad_tsv_path = os.path.join('out_grad', 'psd.tsv')
         df_psd.to_csv(grad_tsv_path, sep='\t')
 
         if num_subplots == 1:
@@ -190,7 +190,7 @@ if picks == None:
         df_psd = pd.DataFrame(psd_welch_mag, index=ch_mag, columns=freqs_mag)
         df_psd.index.name = 'channels'
         df_psd.columns.name = 'freqs'
-        mag_tsv_path = os.path.join('out_psd_mag', 'psd.tsv')
+        mag_tsv_path = os.path.join('out_mag', 'psd.tsv')
         df_psd.to_csv(mag_tsv_path, sep='\t')
 
         if num_subplots == 1:
